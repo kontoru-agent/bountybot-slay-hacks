@@ -1,0 +1,49 @@
+[bountybot] v0.1.0 — target: targets/demo-vault
+[bountybot] rule: no runnable PoC means no report
+
+[scout] loading program scope ...
+[scout] program: DemoVault (Bountybot demo target) v1.0.0
+[scout] in scope: src/DemoVault.sol
+[scout] known issues on file: 2 (KNOWN-001, KNOWN-002)
+[scout] reward tiers: Critical $10,000, High $5,000, Low $100, Medium $1,000
+
+[hunt] scanning 10 DeFi bug classes ...
+[hunt] REENTRANCY (Critical): src/DemoVault.sol:37 in withdraw()
+[hunt]   withdraw() sends value via an external call and only updates the share balance afterwards ('shares[msg.sender] =' comes after the call). A receiver contract can re-enter withdraw() on every receipt against the same un-updated balance.
+[hunt] ACCESS_CONTROL: clean — no admin-looking fund-moving function without a modifier
+[hunt] ACCOUNTING_DESYNC: clean — shares[] and totalShares move together in every function
+[hunt] ORACLE: clean — no time or price feed in fund math
+[hunt] UNCHECKED_CALL: clean — every low-level call return value is checked
+[hunt] INTEGER_OVERFLOW: clean — pragma ^0.8.x — arithmetic is checked by the compiler
+[hunt] SIGNATURE_REPLAY: clean — no ecrecover without a nonce
+[hunt] PROXY: clean — no delegatecall or upgrade path
+[hunt] FLASH_LOAN: clean — no flash-loan entry point
+[hunt] ERC4626_SHARE_MANIPULATION: clean — 1:1 shares, no share-price math to manipulate
+[hunt] 1 candidate(s), 9 class(es) clean
+
+[verify] running the proof of concept ...
+[verify] method: forge — 2 passed, 0 failed
+[verify] vault 100 ETH -> 0 ETH; attacker drained 101 ETH from a 1 ETH deposit
+  [ok] PoC reproduces the impact from a clean checkout
+
+[gate] 7-question triage ...
+[gate] [PASS] Can an attacker do this right now against a real user who took no unusual action?
+[gate]        Yes — any address can deposit 1 ETH and re-enter withdraw(); the PoC does exactly that, no victim cooperation needed.
+[gate] [PASS] Does it cause real harm (stolen money, leaked PII, account takeover, or code execution)?
+[gate]        Yes — 101 ETH stolen in the PoC: the victim's entire deposit. Stolen money, quantified.
+[gate] [PASS] Is the target in scope?
+[gate]        Yes — src/DemoVault.sol is listed in scope.json in_scope.
+[gate] [PASS] Is it a known issue / duplicate?
+[gate]        No — checked against the known-issues list (KNOWN-001 rounding dust, KNOWN-002 no pause); neither matches reentrancy.
+[gate] [PASS] Is the PoC reproducible from a clean checkout?
+[gate]        Yes — `forge test` passes 2/2 from a clean checkout (test_ReentrancyDrainsVault + test_HonestWithdrawWorks).
+[gate] [PASS] Is the impact quantified with exact numbers?
+[gate]        Yes — vault 100 ETH -> 0 ETH; attacker drained 101 ETH from a 1 ETH deposit.
+[gate] [PASS] Is there a single root cause, not a chain of unproven preconditions?
+[gate]        Yes — one root cause: withdraw() sends ETH before zeroing the share balance (checks-effects-interactions violation).
+[gate] verdict: 7/7 PASS
+
+[report] drafting the submission-grade report ...
+[report] wrote reports/demo-vault-reentrancy.md (tier Critical)
+
+[bountybot] DONE in 5.9s — 1 finding, 1 verified, 1 report drafted
