@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+targets/demo-vault/out/
+targets/demo-vault/cache/
+demo/_frames/
+.DS_Store
